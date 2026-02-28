@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())       // user unique identifier
+  email     String    @unique                    // user email address
+  name      String?                               // user name (optional)
+  password  String?                               // hashed password for login
+  role      Role    @default(CUSTOMER)           // role: CUSTOMER or ADMIN
+  products  Product[]                             // products added by this user (if admin/store owner)
+  orders    Order[]                               // orders made by this user
+  createdAt DateTime @default(now())             // account creation timestamp
+}
+
+model Product {
+  id        String    @id @default(cuid())       // product unique identifier
+  user      User      @relation(fields: [userId], references: [id]) // owner/admin
+  userId    String                                 // foreign key to User
+  name      String                                 // product name
+  price     Float                                  // product price
+  orders    OrderItem[]                            // relation to order items
+  createdAt DateTime @default(now())              // timestamp
+}
+
+model Order {
+  id        String       @id @default(cuid())    // order unique identifier
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String                                // foreign key to User (customer)
+  items     OrderItem[]                           // products in this order
+  status    OrderStatus @default(PENDING)        // status of the order
+  total     Float                                 // total price
+  createdAt DateTime @default(now())             // order timestamp
+  updatedAt DateTime @updatedAt                  // last update timestamp
+}
+
+model OrderItem {
+  id        String    @id @default(cuid())
+  order     Order     @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product   @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int       @default(1)
+  price     Float     // price at the time of ordering
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
